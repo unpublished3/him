@@ -1,3 +1,10 @@
+# Ignore all files
+*
+# Unignore all directories, allowing Git to scan their contents
+!*/
+# Unignore files that have an extension
+!*.*
+
 # Prerequisites
 *.d
 
@@ -53,3 +60,5 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+build/
