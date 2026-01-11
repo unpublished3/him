@@ -11,6 +11,7 @@
 
 /*** defines ***/
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define ESCAPE_SEQUENCE(k) ("\x1b[" k)
 
 /*** data ***/
 
@@ -65,12 +66,19 @@ void processEditorKeypress() {
   }
 }
 
+/*** outpue ***/
+void editorClearScreen() { write(STDOUT_FILENO, ESCAPE_SEQUENCE("2J"), 4); }
+
+void editorRepositionCursor() { write(STDOUT_FILENO, ESCAPE_SEQUENCE("H"), 3); }
+
 /*** init ***/
 
 int main() {
   enableRawMode();
 
   while (1) {
+    editorRepositionCursor();
+    editorClearScreen();
     processEditorKeypress();
   }
 
