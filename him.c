@@ -122,9 +122,11 @@ void editorRepositionCursor() { write(STDOUT_FILENO, "\x1b[;H", 4); }
 void editorDrawRows() {
   int y;
   char printChar[16];
-  for (y = 0; y < E.screenRows; y++) {
-    sprintf(printChar, "%d\r\n", y);
+  for (y = 1; y <= E.screenRows; y++) {
+    sprintf(printChar, "%d", y);
     write(STDOUT_FILENO, printChar, strlen(printChar));
+    if (y != E.screenRows)
+      write(STDOUT_FILENO, "\r\n", 2);
   }
 }
 
