@@ -1,5 +1,6 @@
 /*** includes ***/
 
+#include <_string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -14,6 +15,7 @@
 
 /*** defines ***/
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define ABUF_INIT {NULL, 0}
 
 /*** data ***/
 
@@ -100,6 +102,25 @@ int getWidowSize(int *rows, int *cols) {
   return 0;
 }
 
+/*** append buffer ***/
+
+struct abuf {
+  char *b;
+  int len;
+};
+
+void abAppend(struct abuf *ab, const char *c, int len) {
+  char *new = realloc(ab->b, ab->len + len);
+
+  if (new == NULL)
+    return;
+  memcpy(&new[ab->len], c, len);
+  ab->b = new;
+  ab->len += len;
+}
+
+void abFree(struct abuf *ab) { free(ab->b); }
+
 /*** input ***/
 
 void processEditorKeypress() {
@@ -119,17 +140,29 @@ void editorClearScreen() { write(STDOUT_FILENO, "\x1b[2J", 4); }
 
 void editorRepositionCursor() { write(STDOUT_FILENO, "\x1b[;H", 4); }
 
-void editorDrawRows() {
+void editorDrawRows(struct abuf *ab) {
   int y;
   char printChar[16];
   for (y = 1; y <= E.screenRows; y++) {
     sprintf(printChar, "%d", y);
-    write(STDOUT_FILENO, printChar, strlen(printChar));
+    abAppend(ab, printChar, strlen(printChar));
     if (y != E.screenRows)
-      write(STDOUT_FILENO, "\r\n", 2);
+      abAppend(ab, "\r\n", 2);
   }
 }
 
+void editorRefreshScreen() {
+  struct abuf ab = ABUF_INIT;
+  abAppend(&ab, "\x1b[2J", 4);
+  abAppend(&ab, "\x1b[H", 3);
+
+  editorDrawRows(&ab);
+
+  abAppend(&ab, "\x1b[H", 3);
+
+  write(STDOUT_FILENO, ab.b, ab.len);
+  abFree(&ab);
+}
 /*** init ***/
 void initEditor() {
   if (getWidowSize(&E.screenRows, &E.screenCols) == -1)
@@ -141,9 +174,7 @@ int main() {
   initEditor();
 
   while (1) {
-    editorRepositionCursor();
-    editorClearScreen();
-    editorDrawRows();
+    editorRefreshScreen();
     processEditorKeypress();
   }
 
